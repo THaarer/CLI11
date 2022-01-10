@@ -822,23 +822,28 @@ TEST_CASE("RegEx: SplittingNew", "[helpers]") {
     std::vector<std::string> longs;
     std::string pname;
 
-    CHECK_NOTHROW(std::tie(shorts, longs, pname) = CLI::detail::get_names({"--long", "-s", "-q", "--also-long"}));
+    CHECK_NOTHROW(std::tie(shorts, longs, pname) = CLI::detail::get_names({"--long", "-s", "-q", "--also-long"}, false));
     CHECK(longs == std::vector<std::string>({"long", "also-long"}));
     CHECK(shorts == std::vector<std::string>({"s", "q"}));
     CHECK(pname == "");
 
-    std::tie(shorts, longs, pname) = CLI::detail::get_names({"--long", "", "-s", "-q", "", "--also-long"});
+    CHECK_NOTHROW(std::tie(shorts, longs, pname) = CLI::detail::get_names({"--long", "-s", "-q", "-long-disguise", "--also-long"}, true));
+    CHECK(longs == std::vector<std::string>({"long", "also-long"}));
+    CHECK(shorts == std::vector<std::string>({"s", "q", "long-disguise"}));
+    CHECK(pname == "");
+
+    std::tie(shorts, longs, pname) = CLI::detail::get_names({"--long", "", "-s", "-q", "", "--also-long"}, false);
     CHECK(longs == std::vector<std::string>({"long", "also-long"}));
     CHECK(shorts == std::vector<std::string>({"s", "q"}));
 
-    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"-"}); }(), CLI::BadNameString);
-    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"--"}); }(), CLI::BadNameString);
-    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"-hi"}); }(), CLI::BadNameString);
-    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"---hi"}); }(),
+    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"-"}, false); }(), CLI::BadNameString);
+    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"--"}, false); }(), CLI::BadNameString);
+    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"-hi"}, false); }(), CLI::BadNameString);
+    CHECK_THROWS_AS([&]() { std::tie(shorts, longs, pname) = CLI::detail::get_names({"---hi"}, false); }(),
                     CLI::BadNameString);
     CHECK_THROWS_AS(
         [&]() {
-            std::tie(shorts, longs, pname) = CLI::detail::get_names({"one", "two"});
+            std::tie(shorts, longs, pname) = CLI::detail::get_names({"one", "two"}, false);
         }(),
         CLI::BadNameString);
 }

@@ -31,6 +31,22 @@ inline bool split_short(const std::string &current, std::string &name, std::stri
     return false;
 }
 
+// Returns false if not a long disguise option. Otherwise, sets opt name and other side of = and returns true
+inline bool split_long_disguise(const std::string &current, std::string &name, std::string &value) {
+    if(current.size() > 1 && current[0] == '-' && valid_first_char(current[1])) {
+        auto loc = current.find_first_of('=');
+        if(loc != std::string::npos) {
+            name = current.substr(1, loc - 1);
+            value = current.substr(loc + 1);
+        } else {
+            name = current.substr(1);
+            value = "";
+        }
+        return true;
+    }
+    return false;
+}
+
 // Returns false if not a long option. Otherwise, sets opt name and other side of = and returns true
 inline bool split_long(const std::string &current, std::string &name, std::string &value) {
     if(current.size() > 2 && current.substr(0, 2) == "--" && valid_first_char(current[2])) {
@@ -104,7 +120,7 @@ inline std::vector<std::pair<std::string, std::string>> get_default_flag_values(
 
 /// Get a vector of short names, one of long names, and a single name
 inline std::tuple<std::vector<std::string>, std::vector<std::string>, std::string>
-get_names(const std::vector<std::string> &input) {
+get_names(const std::vector<std::string> &input, bool allow_long_disguised) {
 
     std::vector<std::string> short_names;
     std::vector<std::string> long_names;
@@ -115,8 +131,8 @@ get_names(const std::vector<std::string> &input) {
             continue;
         }
         if(name.length() > 1 && name[0] == '-' && name[1] != '-') {
-            if(name.length() == 2 && valid_first_char(name[1]))
-                short_names.emplace_back(1, name[1]);
+            if((name.length() == 2 || allow_long_disguised) && valid_first_char(name[1]))
+                short_names.push_back(name.substr(1));
             else
                 throw BadNameString::OneCharName(name);
         } else if(name.length() > 2 && name.substr(0, 2) == "--") {

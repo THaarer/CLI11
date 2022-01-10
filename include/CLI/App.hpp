@@ -208,6 +208,9 @@ class App {
         false
 #endif
     };
+
+    bool allow_long_disguise_{false};
+
     /// specify that positional arguments come at the end of the argument sequence not inheritable
     bool positionals_at_end_{false};
 
@@ -495,6 +498,13 @@ class App {
         return this;
     }
 
+    /// Allow long options with single dash, such as `-opt`. This will disable combined short options and require
+    /// space or '=' for values. Subcommands inherit value.
+    App *allow_long_disguise(bool value = true) {
+        allow_long_disguise_ = value;
+        return this;
+    }
+
     /// Specify that the positional arguments are only at the end of the sequence
     App *positionals_at_end(bool value = true) {
         positionals_at_end_ = value;
@@ -569,14 +579,14 @@ class App {
                        std::string option_description = "",
                        bool defaulted = false,
                        std::function<std::string()> func = {}) {
-        Option myopt{option_name, option_description, option_callback, this};
+        Option myopt{option_name, option_description, option_callback, this, allow_long_disguise_};
 
         if(std::find_if(std::begin(options_), std::end(options_), [&myopt](const Option_p &v) {
                return *v == myopt;
            }) == std::end(options_)) {
             options_.emplace_back();
             Option_p &option = options_.back();
-            option.reset(new Option(option_name, option_description, option_callback, this));
+            option.reset(new Option(option_name, option_description, option_callback, this, allow_long_disguise_));
 
             // Set the default string capture function
             option->default_function(func);
@@ -2694,8 +2704,13 @@ class App {
                 throw HorribleError("Long parsed but missing (you should not see this):" + args.back());
             break;
         case detail::Classifier::SHORT:
-            if(!detail::split_short(current, arg_name, rest))
-                throw HorribleError("Short parsed but missing! You should not see this");
+            if(allow_long_disguise_) {
+                if(!detail::split_long_disguise(current, arg_name, rest))
+                    throw HorribleError("Long disguised parsed but missing! You should not see this");
+            } else {
+                if(!detail::split_short(current, arg_name, rest))
+                    throw HorribleError("Short parsed but missing! You should not see this");
+            }
             break;
         case detail::Classifier::WINDOWS_STYLE:
             if(!detail::split_windows_style(current, arg_name, value))

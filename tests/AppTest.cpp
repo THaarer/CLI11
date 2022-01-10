@@ -2308,3 +2308,45 @@ TEST_CASE_METHOD(TApp, "logFormSingleDash", "[app]") {
     CHECK(veryverbose);
     CHECK(veryveryverbose);
 }
+
+TEST_CASE_METHOD(TApp, "OneFlagLongDisguise", "[app]") {
+    app.allow_long_disguise();
+    app.add_flag("-cnt,--count");
+    args = {"-cnt"};
+    run();
+    CHECK(app.count("-cnt") == 1u);
+    CHECK(app.count("--count") == 1u);
+}
+
+TEST_CASE_METHOD(TApp, "OneFlagLongDisguiseValues", "[app]") {
+    app.allow_long_disguise();
+    app.add_flag("-cnt{v1},--count{v2}");
+    args = {"-cnt"};
+    run();
+    CHECK(app.count("-cnt") == 1u);
+    CHECK(app.count("--count") == 1u);
+    auto v = app["-cnt"]->results();
+    CHECK("v1" == v[0]);
+
+    CHECK_THROWS_AS(app["--invalid"], CLI::OptionNotFound);
+}
+
+TEST_CASE_METHOD(TApp, "OneStringLongDisguise", "[app]") {
+    app.allow_long_disguise();
+    std::string value;
+    app.add_option("-val", value);
+    args = {"-val", "Hello"};
+    run();
+    CHECK(app.count("-val") == 1u);
+    CHECK(value == "Hello");
+}
+
+TEST_CASE_METHOD(TApp, "OneStringLongDisguiseEquals", "[app]") {
+    app.allow_long_disguise();
+    std::string value;
+    app.add_option("-val", value);
+    args = {"-val=Hello"};
+    run();
+    CHECK(app.count("-val") == 1u);
+    CHECK(value == "Hello");
+}
